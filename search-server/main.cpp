@@ -78,17 +78,12 @@ public:
             });
     }
 
-
     vector<Document> FindTopDocuments(const string& raw_query) const {            
-    
         return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
-        
     } 
 
     vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status_) const {            
-    
-        return FindTopDocuments(raw_query, [status_](int document_id, DocumentStatus status, int rating) { return status == status_; });
-        
+            return FindTopDocuments(raw_query, [status_](int document_id, DocumentStatus status, int rating) { return status == status_; });
     }    
 
     template <typename Predicate> 
