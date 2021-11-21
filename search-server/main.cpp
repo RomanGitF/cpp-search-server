@@ -1,3 +1,5 @@
+// search_server_s1_t2_v2.cpp
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -78,18 +80,14 @@ public:
             });
     }
 
-    vector<Document> FindTopDocuments(const string& raw_query) const {            
-        return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
-    } 
-
-    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status_) const {            
-            return FindTopDocuments(raw_query, [status_](int document_id, DocumentStatus status, int rating) { return status == status_; });
+    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus query_status = DocumentStatus::ACTUAL) const {            
+        return FindTopDocuments(raw_query, [query_status](int document_id, DocumentStatus status, int rating) { return status == query_status; });  
     }    
 
     template <typename Predicate> 
-    vector<Document> FindTopDocuments(const string& raw_query, Predicate pred) const {            
+    vector<Document> FindTopDocuments(const string& raw_query, Predicate predicate) const {            
         const Query query = ParseQuery(raw_query);
-        auto matched_documents = FindAllDocuments(query, pred);
+        auto matched_documents = FindAllDocuments(query, predicate);
         
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document& lhs, const Document& rhs) {
@@ -213,7 +211,7 @@ private:
     }
 
     template <typename Predicate>
-    vector<Document> FindAllDocuments(const Query& query, Predicate pred) const {
+    vector<Document> FindAllDocuments(const Query& query, Predicate predicate) const {
         map<int, double> document_to_relevance;
         for (const string& word : query.plus_words) {
             if (word_to_document_freqs_.count(word) == 0) {
@@ -221,7 +219,8 @@ private:
             }
             const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
             for (const auto [document_id, term_freq] : word_to_document_freqs_.at(word)) {
-                if (pred(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
+                DocumentData data = documents_.at(document_id); 
+                if (predicate(document_id, data.status, data.rating))
                 document_to_relevance[document_id] += term_freq * inverse_document_freq;
              }
 
