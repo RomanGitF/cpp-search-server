@@ -247,9 +247,143 @@ private:
     }
 };
 
+// --------------------------------------------Start sprint 2
+void TestAddDocument(){  // 1
+    const int doc_id = 42;
+    const string content = "cat in the city"s;
+    const vector<int> ratings = {1, 2, 3};
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
-// ==================== для примера =========================
+    ASSERT(!server.FindTopDocuments("cat"s).empty());
+}
 
+void TestExcludeStopWordsFromAddedDocumentContent() { // 2
+    const int doc_id = 42;
+    const string content = "cat in the city"s;
+    const vector<int> ratings = {1, 2, 3};
+    {
+        SearchServer server;
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+        const auto found_docs = server.FindTopDocuments("in"s);
+        ASSERT_EQUAL(found_docs.size(), 1u);
+        const Document& doc0 = found_docs[0];
+        ASSERT_EQUAL(doc0.id, doc_id);
+    }
+    {
+        SearchServer server;
+        server.SetStopWords("in the"s);
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+        ASSERT_HINT(server.FindTopDocuments("in"s).empty(), "Stop words must be excluded from documents"s);
+    }
+}
+
+void TestExcludeMinusWords() {  // 3
+    const int doc_id = 42; 
+    const string content = "cat in the city"s;
+    const vector<int> ratings = {1, 2, 3};
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+    ASSERT_HINT(server.FindTopDocuments("in the -cat"s).empty(), "Wrong: found minus word");
+    }
+
+void TestMatchedDocuments() { // 4
+    const int doc_id = 42;
+    const string content = "cat and dog in the city"s;
+    const vector<int> ratings = {1, 2, 3};
+    vector<string> answer = {"in"s, "the"s, "cat"s};
+
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+
+    ASSERT_HINT(get<vector<string>>(server.MatchDocument("in the -cat"s, doc_id)).empty(), "Wrong: count minus words");
+
+        vector<string> answer_for_test = get<vector<string>>(server.MatchDocument("in the cat"s, doc_id));
+        auto MD = [] (vector<string>& lhs, vector<string>& rhs){
+            if (rhs.size() != lhs.size())
+                return false;
+            sort(lhs.begin(), lhs.end());
+            sort(rhs.begin(), rhs.end());
+            for (int i = 0; i<rhs.size(); ++i){
+                if (lhs[i] == rhs[i])
+                    continue; else return false;}
+                return true;};
+
+    ASSERT_HINT(MD(answer_for_test, answer), "Wrong count words");
+}
+
+void TestLineRelevance(){ // 5
+    SearchServer server;
+    server.AddDocument(100, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(101, "dog in the town"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(102, "dog and rabbit in the town"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    const auto found_docs = server.FindTopDocuments("dog in the town"s);
+
+    ASSERT_HINT(found_docs[0].relevance >= found_docs[1].relevance, "Wrong line relevance");
+    ASSERT_HINT(found_docs[1].relevance >= found_docs[2].relevance, "Wrong line relevance");
+}
+
+void TestRating() { // 6
+    SearchServer server;
+    server.AddDocument(100, "cat"s, DocumentStatus::ACTUAL, {1, 2, 3, 4, 5});
+    server.AddDocument(101, "dog"s, DocumentStatus::ACTUAL, {-1, -2, -3, -4, -5}); 
+    server.AddDocument(102, "cow"s, DocumentStatus::ACTUAL, {0});     
+    ASSERT_HINT(server.FindTopDocuments("cat"s)[0].rating == 3, "Wrong rating");
+    ASSERT_HINT(server.FindTopDocuments("dog"s)[0].rating == -3, "Wrong negative rating");
+    ASSERT_HINT(server.FindTopDocuments("cow"s)[0].rating == 0, "Wrong O rating");   
+}
+
+void TestPredicate () { // 7
+    SearchServer server;
+    server.AddDocument(100, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(101, "dog in the town"s, DocumentStatus::IRRELEVANT, {-1, -2, -3});
+    server.AddDocument(102, "dog and rabbit in the town"s, DocumentStatus::ACTUAL, {-4, -5, -6});
+
+    const auto found_docs = server.FindTopDocuments("in the cat"s, [](int document_id, DocumentStatus status, int rating) { return rating > 0; });
+    ASSERT_HINT(found_docs[0].id == 100, "Wrong predicate");
+}
+
+void TestStatus () {  // 8
+    const int doc_id1 = 42; const int doc_id2 = 43; const int doc_id3 = 44;
+    const string content1 = "cat in the city"s;
+    const string content2 = "cat in the town"s;
+    const string content3 = "cat in the town or city"s;   
+    const vector<int> ratings = {1, 2, 3};
+    SearchServer server;
+    server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings);
+    server.AddDocument(doc_id2, content2, DocumentStatus::IRRELEVANT, ratings);
+    server.AddDocument(doc_id3, content3, DocumentStatus::IRRELEVANT, ratings);   
+
+    const auto found_docs = server.FindTopDocuments("in the cat"s, DocumentStatus::IRRELEVANT);  
+
+    ASSERT_HINT(found_docs[0].id == doc_id2, "Wrong status"); 
+    ASSERT_HINT(found_docs[1].id == doc_id3, "Wrong status");
+    ASSERT_HINT(found_docs.size() == 2, "Wrong status request"); 
+
+}
+
+void TestRelevance(){ // 9
+    SearchServer server;
+    server.AddDocument(100, "белый кот и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(101, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(102, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    const auto found_docs = server.FindTopDocuments("пушистый ухоженный кот"s);
+
+    ASSERT_HINT(fabs(found_docs[0].relevance-0.6507)<1e-4, "Wrong relevance");
+}
+
+void TestSearchServer() {
+    RUN_TEST(TestAddDocument);  // Добавление документов - 1
+    RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent); // Поддержка стоп-слов - 2
+    RUN_TEST(TestExcludeMinusWords);// Поддержка минус-слов - 3
+    RUN_TEST(TestMatchedDocuments); // Матчинг - 4
+    RUN_TEST(TestRelevance); //Сортировка по релевантности - 5ж   
+    RUN_TEST(TestRating); //вычисление рейтинга 6
+    RUN_TEST(TestPredicate); //Работоспособность предиката 7
+    RUN_TEST(TestStatus); // Поиск с заданным статусом 8
+    RUN_TEST(TestLineRelevance); // Правильный расчет релевантности 9
+}
+// ------------------------------------FINISH sprint 2
 
 void PrintDocument(const Document& document) {
     cout << "{ "s
@@ -260,6 +394,9 @@ void PrintDocument(const Document& document) {
 }
 
 int main() {
+    
+    TestSearchServer();  //Sprint 2
+    
     SearchServer search_server;
     search_server.SetStopWords("и в на"s);
 
