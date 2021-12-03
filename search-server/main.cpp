@@ -247,7 +247,52 @@ private:
     }
 };
 
+// --------------------------------------------Macros
+
+#define ASSERT_EQUAL(a, b) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, ""s)  // равенство
+#define ASSERT_EQUAL_HINT(a, b, hint) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, (hint))
+#define ASSERT(expr) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, ""s)  // бул
+#define ASSERT_HINT(expr, hint) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
+
+template <typename T, typename U>
+void AssertEqualImpl(const T& t, const U& u, const string& t_str, const string& u_str, const string& file,
+                     const string& func, unsigned line, const string& hint) {
+    if (t != u) {
+        cout << boolalpha;
+        cout << file << "("s << line << "): "s << func << ": "s;
+        cout << "ASSERT_EQUAL("s << t_str << ", "s << u_str << ") failed: "s;
+        cout << t << " != "s << u << "."s;
+        if (!hint.empty()) {
+            cout << " Hint: "s << hint;
+        }
+        cout << endl;
+        abort();
+    }
+}
+
+void AssertImpl(bool value, const string& expr_str, const string& file, const string& func, unsigned line,
+                const string& hint) {
+    if (!value) {
+        cout << file << "("s << line << "): "s << func << ": "s;
+        cout << "ASSERT("s << expr_str << ") failed."s;
+        if (!hint.empty()) {
+            cout << " Hint: "s << hint;
+        }
+        cout << endl;
+        abort();
+    }
+}
+
+#define RUN_TEST(func) RunTestImpl(func, #func) 
+
+template <typename T>
+void RunTestImpl(T func(), const string& text) {
+        func();
+        cerr << text << " OK" << endl;
+}
+
 // --------------------------------------------Start sprint 2
+
 void TestAddDocument(){  // 1
     const int doc_id = 42;
     const string content = "cat in the city"s;
@@ -278,7 +323,7 @@ void TestExcludeStopWordsFromAddedDocumentContent() { // 2
     }
 }
 
-void TestExcludeMinusWords() {  // 3
+void TestExcludeFoundDocumentsWithMinusWords() {  // 3
     const int doc_id = 42; 
     const string content = "cat in the city"s;
     const vector<int> ratings = {1, 2, 3};
@@ -287,43 +332,48 @@ void TestExcludeMinusWords() {  // 3
     ASSERT_HINT(server.FindTopDocuments("in the -cat"s).empty(), "Wrong: found minus word");
     }
 
-void TestMatchedDocuments() { // 4
+void TestMatchedFoundDocuments() { // 4
     const int doc_id = 42;
     const string content = "cat and dog in the city"s;
     const vector<int> ratings = {1, 2, 3};
     vector<string> answer = {"in"s, "the"s, "cat"s};
-
     SearchServer server;
     server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-
     ASSERT_HINT(get<vector<string>>(server.MatchDocument("in the -cat"s, doc_id)).empty(), "Wrong: count minus words");
+    vector<string> answer_for_test = get<vector<string>>(server.MatchDocument("in the cat"s, doc_id));
 
-        vector<string> answer_for_test = get<vector<string>>(server.MatchDocument("in the cat"s, doc_id));
-        auto MD = [] (vector<string>& lhs, vector<string>& rhs){
-            if (rhs.size() != lhs.size())
+    auto equal_vectors = [] (vector<string>& lhs, vector<string>& rhs){
+        if (rhs.size() != lhs.size())
+            return false;
+        sort(lhs.begin(), lhs.end());
+        sort(rhs.begin(), rhs.end());
+        for (int i = 0; i<rhs.size(); ++i){
+            if (lhs[i] == rhs[i])
+                continue; 
+            else 
                 return false;
-            sort(lhs.begin(), lhs.end());
-            sort(rhs.begin(), rhs.end());
-            for (int i = 0; i<rhs.size(); ++i){
-                if (lhs[i] == rhs[i])
-                    continue; else return false;}
-                return true;};
-
-    ASSERT_HINT(MD(answer_for_test, answer), "Wrong count words");
+        }
+            return true;};
+    ASSERT_HINT(equal_vectors(answer_for_test, answer), "Wrong count words");
 }
 
-void TestLineRelevance(){ // 5
+void TestSortByRelevanceByDecreasing(){ // 5
     SearchServer server;
     server.AddDocument(100, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
     server.AddDocument(101, "dog in the town"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    server.AddDocument(102, "dog and rabbit in the town"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    const auto found_docs = server.FindTopDocuments("dog in the town"s);
+    server.AddDocument(102, "dog in the town"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(103, "rabbit and owl in the village"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(104, "my cat, cat and cat"s, DocumentStatus::ACTUAL, {1, 2, 3});   
+    server.AddDocument(105, "cow"s, DocumentStatus::ACTUAL, {1, 2, 3}); 
+    server.AddDocument(106, "dog and rabbit in the town"s, DocumentStatus::ACTUAL, {1, 2, 3}); 
+    const auto found_docs = server.FindTopDocuments("dog cat town"s);
 
-    ASSERT_HINT(found_docs[0].relevance >= found_docs[1].relevance, "Wrong line relevance");
-    ASSERT_HINT(found_docs[1].relevance >= found_docs[2].relevance, "Wrong line relevance");
+    ASSERT_HINT(found_docs.size() == 5, "Wrong sum found documents");
+    for (int i = 1; i < 5; ++i){
+        ASSERT_HINT(found_docs[i-1].relevance - found_docs[i].relevance >= 0, "Wrong sort by relevance");}
 }
 
-void TestRating() { // 6
+void TestСalculationRatingAddDocument() { // 6
     SearchServer server;
     server.AddDocument(100, "cat"s, DocumentStatus::ACTUAL, {1, 2, 3, 4, 5});
     server.AddDocument(101, "dog"s, DocumentStatus::ACTUAL, {-1, -2, -3, -4, -5}); 
@@ -333,7 +383,7 @@ void TestRating() { // 6
     ASSERT_HINT(server.FindTopDocuments("cow"s)[0].rating == 0, "Wrong O rating");   
 }
 
-void TestPredicate () { // 7
+void TestSearchFilterPredicateForFindDocumets () { // 7
     SearchServer server;
     server.AddDocument(100, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
     server.AddDocument(101, "dog in the town"s, DocumentStatus::IRRELEVANT, {-1, -2, -3});
@@ -343,7 +393,7 @@ void TestPredicate () { // 7
     ASSERT_HINT(found_docs[0].id == 100, "Wrong predicate");
 }
 
-void TestStatus () {  // 8
+void TestSearchFilterStatusFoundDocuments () {  // 8
     const int doc_id1 = 42; const int doc_id2 = 43; const int doc_id3 = 44;
     const string content1 = "cat in the city"s;
     const string content2 = "cat in the town"s;
@@ -353,35 +403,32 @@ void TestStatus () {  // 8
     server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings);
     server.AddDocument(doc_id2, content2, DocumentStatus::IRRELEVANT, ratings);
     server.AddDocument(doc_id3, content3, DocumentStatus::IRRELEVANT, ratings);   
-
-    const auto found_docs = server.FindTopDocuments("in the cat"s, DocumentStatus::IRRELEVANT);  
-
+    const auto found_docs = server.FindTopDocuments("in the cat"s, DocumentStatus::IRRELEVANT); 
     ASSERT_HINT(found_docs[0].id == doc_id2, "Wrong status"); 
     ASSERT_HINT(found_docs[1].id == doc_id3, "Wrong status");
     ASSERT_HINT(found_docs.size() == 2, "Wrong status request"); 
-
 }
 
-void TestRelevance(){ // 9
+void TestСalculationRelevanceFoundDocuments(){ // 9
     SearchServer server;
-    server.AddDocument(100, "белый кот и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    server.AddDocument(101, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    server.AddDocument(102, "ухоженный пёс выразительные глаза"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    const auto found_docs = server.FindTopDocuments("пушистый ухоженный кот"s);
-
-    ASSERT_HINT(fabs(found_docs[0].relevance-0.6507)<1e-4, "Wrong relevance");
+    server.AddDocument(100, "white cat with new ring"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(101, "fluffy cat fluffy tail"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    server.AddDocument(102, "good dog big eyes"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    const auto found_docs = server.FindTopDocuments("fluffy good cat"s);
+    double relevance_query =  log((3 * 1.0)/1) * (2.0 / 4.0) + log((3 * 1.0)/2) * (1.0 / 4.0);
+    ASSERT_HINT(fabs(found_docs[0].relevance- relevance_query)<1e-6, "Wrong calculation relevance");
 }
 
 void TestSearchServer() {
     RUN_TEST(TestAddDocument);  // Добавление документов - 1
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent); // Поддержка стоп-слов - 2
-    RUN_TEST(TestExcludeMinusWords);// Поддержка минус-слов - 3
-    RUN_TEST(TestMatchedDocuments); // Матчинг - 4
-    RUN_TEST(TestRelevance); //Сортировка по релевантности - 5ж   
-    RUN_TEST(TestRating); //вычисление рейтинга 6
-    RUN_TEST(TestPredicate); //Работоспособность предиката 7
-    RUN_TEST(TestStatus); // Поиск с заданным статусом 8
-    RUN_TEST(TestLineRelevance); // Правильный расчет релевантности 9
+    RUN_TEST(TestExcludeFoundDocumentsWithMinusWords);// Поддержка минус-слов - 3
+    RUN_TEST(TestMatchedFoundDocuments); // Матчинг - 4
+    RUN_TEST(TestSortByRelevanceByDecreasing); //Сортировка по релевантности - 5 
+    RUN_TEST(TestСalculationRatingAddDocument); //вычисление рейтинга - 6
+    RUN_TEST(TestСalculationRatingAddDocument); //Работоспособность предиката - 7
+    RUN_TEST(TestSearchFilterStatusFoundDocuments); // Поиск с заданным статусом - 8
+    RUN_TEST(TestСalculationRelevanceFoundDocuments); // Правильный расчет релевантности - 9
 }
 // ------------------------------------FINISH sprint 2
 
