@@ -394,7 +394,9 @@ void TestSearchFilterPredicateForFindDocumets () { // 7
 }
 
 void TestSearchFilterStatusFoundDocuments () {  // 8
-    const int doc_id1 = 42; const int doc_id2 = 43; const int doc_id3 = 44;
+    const int doc_id1 = 42;
+    const int doc_id2 = 43;
+    const int doc_id3 = 44;
     const string content1 = "cat in the city"s;
     const string content2 = "cat in the town"s;
     const string content3 = "cat in the town or city"s;   
@@ -416,7 +418,7 @@ void TestСalculationRelevanceFoundDocuments(){ // 9
     server.AddDocument(102, "good dog big eyes"s, DocumentStatus::ACTUAL, {1, 2, 3});
     const auto found_docs = server.FindTopDocuments("fluffy good cat"s);
     double relevance_query =  log((3 * 1.0)/1) * (2.0 / 4.0) + log((3 * 1.0)/2) * (1.0 / 4.0);
-    ASSERT_HINT(fabs(found_docs[0].relevance- relevance_query)<1e-6, "Wrong calculation relevance");
+    ASSERT_HINT(fabs(found_docs[0].relevance - relevance_query) < 1e-6, "Wrong calculation relevance");
 }
 
 void TestSearchServer() {
