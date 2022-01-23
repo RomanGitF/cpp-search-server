@@ -35,10 +35,6 @@ using namespace std;
         return documents_.size();
     }
 
-    /*int SearchServer::GetDocumentId(int index) const {
-        return document_ids_.at(index);
-    }*/
-
     set<int>::iterator SearchServer::begin() {
         return document_ids_.begin();
     }
@@ -56,7 +52,6 @@ using namespace std;
         return document_to_words_freqs_.find(document_id)->second;        
     }
 
-
     void SearchServer::RemoveDocument(int document_id) {
         auto check = find(document_ids_.cbegin(), document_ids_.cend(), document_id);
         if (check == document_ids_.cend()) {
@@ -70,27 +65,6 @@ using namespace std;
         }
         document_to_words_freqs_.erase(document_id);
     }
-
-
-
-     /*void SearchServer::RemoveDocument(int document_id) {
-         auto RemoveData = document_to_words_freqs_.find(document_id);
-         
-        for (auto data : RemoveData->second) {
-             word_to_document_freqs_.erase( (word_to_document_freqs_.find(data.first) -> second).find(document_id) );
-         }
-
-         documents_.erase(documents_.find(document_id));
-         document_ids_.erase( find(document_ids_.cbegin(), document_ids_.cend(), document_id) );
-         document_to_words_freqs_.erase(RemoveData);
-     }*/
-
-     /*-------------------std::map<std::string, std::map<int, double>> word_to_document_freqs_; ----------------------------
-      
-     std::map<int, std::map<std::string, double>> document_to_words_freqs_;+
-
-     std::map<int, DocumentData> documents_;
-     std::vector<int> document_ids_;*/
 
     tuple<vector<string>, DocumentStatus> SearchServer::MatchDocument(const string& raw_query, int document_id) const {
         const auto query = ParseQuery(raw_query);
