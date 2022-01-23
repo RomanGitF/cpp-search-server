@@ -35,8 +35,6 @@ public:
 
     int GetDocumentCount() const;
 
-    //int GetDocumentId(int index) const;
-
     std::set<int>::iterator begin();
 
     std::set<int>::iterator end();
