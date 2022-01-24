@@ -7,15 +7,13 @@ using namespace std;
 
 void RemoveDuplicates(SearchServer& search_server) {
     vector <int> RemoveId;
-
-	set <set <string> > documents;
-    set<string> words;
-
+    set <set <string> > documents;
+    
     for (const auto& id: search_server) {
-        words.clear();
-		for (const auto& [word, freqs] : search_server.GetWordFrequencies(id)) {
+        set<string> words;
+        for (const auto& [word, freqs] : search_server.GetWordFrequencies(id)) {
             words.insert(word);
-		}
+        }
         if (documents.count(words) != 0) {
             RemoveId.push_back(id);
         }
