@@ -52,8 +52,9 @@ using namespace std;
         return document_to_words_freqs_.find(document_id)->second;        
     }
 
+
     void SearchServer::RemoveDocument(int document_id) {
-        auto check = find(document_ids_.cbegin(), document_ids_.cend(), document_id);
+        auto check = document_ids_.find(document_id);
         if (check == document_ids_.cend()) {
             return;
         }
