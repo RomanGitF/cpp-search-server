@@ -45,8 +45,12 @@ class Paginator {
 public:
 
     Paginator(Iterator begin, Iterator end, size_t page_size) {  
+        if (end >= begin && page_size > 0) {
+            throw invalid_argument("invalid argument"s);
+        }
         Iterator begin_page = begin;
         Iterator end_page = begin;
+
         while (end_page != end) {
             if (distance(begin_page, end) > page_size) {
                 advance(end_page, page_size);

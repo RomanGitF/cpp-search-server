@@ -19,6 +19,7 @@
 
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
+inline static constexpr double EPSILON = 1e-6;
 
 class SearchServer {
 public:
@@ -144,7 +145,7 @@ private:
             policy,
             matched_documents.begin(), matched_documents.end(),
             [](const Document& lhs, const Document& rhs) {
-                if (std::abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                if (std::abs(lhs.relevance - rhs.relevance) < EPSILON) {
                     return lhs.rating > rhs.rating;
                 }
                 else {
@@ -169,15 +170,6 @@ private:
     std::vector<Document> SearchServer::FindTopDocuments(ExecutionPolicy&& policy, std::string_view raw_query) const {
         return FindTopDocuments(policy, raw_query, DocumentStatus::ACTUAL);
     }
-
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////
 
     template <typename DocumentPredicate>
     std::vector<Document> SearchServer::FindAllDocuments(const std::execution::parallel_policy& policy, std::string_view raw_query, DocumentPredicate document_predicate) const {
@@ -222,7 +214,6 @@ private:
     }
 
 
-
     template <typename DocumentPredicate>
     std::vector<Document> SearchServer::FindAllDocuments(const std::execution::sequenced_policy&, std::string_view raw_query, DocumentPredicate document_predicate) const {
         return SearchServer::FindAllDocuments(raw_query, document_predicate);
@@ -230,7 +221,7 @@ private:
     }
 
     template <typename DocumentPredicate>
-      std::vector<Document> SearchServer::FindAllDocuments(std::string_view raw_query, DocumentPredicate document_predicate) const {
+    std::vector<Document> SearchServer::FindAllDocuments(std::string_view raw_query, DocumentPredicate document_predicate) const {
         std::map<int, double> document_to_relevance;
         const auto query = ParseQuery(raw_query);
         for (std::string_view word : query.plus_words) {
@@ -261,15 +252,3 @@ private:
         }
         return matched_documents;
     }
-
-
-    ///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////
-
-void PrintMatchDocumentResult(int document_id, const std::vector<std::string_view>& words, DocumentStatus status);

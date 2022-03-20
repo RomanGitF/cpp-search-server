@@ -160,9 +160,8 @@ int SearchServer::ComputeAverageRating(const vector<int>& ratings) {
         return 0;
     }
     int rating_sum = 0;
-    for (const int rating : ratings) {
-        rating_sum += rating;
-    }
+    rating_sum = std::accumulate(ratings.begin(), ratings.end(), 0);
+
     return rating_sum / static_cast<int>(ratings.size());
 }
 
@@ -221,14 +220,4 @@ SearchServer::Query SearchServer::ParseQuery(string_view text) const {
     return result;
 }
 
-void PrintMatchDocumentResult(int document_id, const vector<string_view>& words, DocumentStatus status) {
-    cout << "{ "s
-        << "document_id = "s << document_id << ", "s
-        << "status = "s << static_cast<int>(status) << ", "s
-        << "words ="s;
-    for (auto word : words) {
-        cout << ' ' << word;
-    }
-    cout << "}"s << endl;
-}
 

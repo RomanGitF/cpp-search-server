@@ -18,3 +18,14 @@ ostream& operator<<(ostream& out, const Document& document) {
 void PrintDocument(const Document& document) {
     cout << document << endl;
 }
+
+void PrintMatchDocumentResult(int document_id, const vector<string_view>& words, DocumentStatus status) {
+    cout << "{ "s
+        << "document_id = "s << document_id << ", "s
+        << "status = "s << static_cast<int>(status) << ", "s
+        << "words ="s;
+    for (auto word : words) {
+        cout << ' ' << word;
+    }
+    cout << "}"s << endl;
+}

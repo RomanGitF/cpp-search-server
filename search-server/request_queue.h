@@ -19,7 +19,7 @@ public:
     int GetNoResultRequests() const;
     
 private:
-        struct QueryResult {
+    struct QueryResult {
         QueryResult(std::vector<Document> request);
         std::vector<Document> results_;
     };   
@@ -27,12 +27,13 @@ private:
     std::deque<QueryResult> requests_;
     const static int min_in_day_ = 1440;
     const SearchServer& queue_search_server;
-    void MoverDeque(std::vector<Document> requests);
+    void MoveDeque(std::vector<Document> requests); 
+    /* ѕо ссылке не получаетс€, FindTopDocuments возвращает вектор*/
 
 };
 
-    template <typename DocumentPredicate>
-    std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentPredicate document_predicate) {
-        MoverDeque(queue_search_server.FindTopDocuments(raw_query, document_predicate));
-        return requests_.back().results_;
-    }
+template <typename DocumentPredicate>
+std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentPredicate document_predicate) {
+    MoveDeque(queue_search_server.FindTopDocuments(raw_query, document_predicate));
+    return requests_.back().results_;
+}
