@@ -2,15 +2,16 @@
 
 #include <iostream>
 #include <map>
-using namespace std;
+
 
 
 void RemoveDuplicates(SearchServer& search_server) {
+    using namespace std;
     vector <int> RemoveId;
-    set <set <string> > documents;
+    set <set <string_view> > documents;
     
     for (const auto& id: search_server) {
-        set<string> words;
+        set<string_view> words;
         for (const auto& [word, freqs] : search_server.GetWordFrequencies(id)) {
             words.insert(word);
         }
